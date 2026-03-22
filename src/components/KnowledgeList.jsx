@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Archive, ArrowLeft, Filter, Grid, List, Plus, Star, X } from 'lucide-react';
 import { getAllKnowledge } from '../lib/storage.js';
 import KnowledgeCard from './KnowledgeCard.jsx';
 import SearchBar from './SearchBar.jsx';
 
 const KnowledgeList = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
@@ -17,6 +18,10 @@ const KnowledgeList = () => {
   const [showFilters, setShowFilters] = useState(false);
 
   const knowledge = useMemo(() => getAllKnowledge(), []);
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get('search') || '');
+  }, [searchParams]);
 
   const categories = useMemo(() => {
     return [...new Set(knowledge.map((item) => item.category).filter(Boolean))];
@@ -61,6 +66,7 @@ const KnowledgeList = () => {
 
   const clearAllFilters = () => {
     setSearchQuery('');
+    setSearchParams({});
     setSelectedCategory('');
     setSelectedTags([]);
     setShowFavoritesOnly(false);

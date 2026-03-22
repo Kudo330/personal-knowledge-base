@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Archive,
   ArrowRight,
@@ -34,6 +34,7 @@ const navigationItems = [
 ];
 
 const Index = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddData, setQuickAddData] = useState(initialQuickAddData);
@@ -119,6 +120,17 @@ const Index = () => {
       ...prev,
       tags: prev.tags.filter((tag) => tag !== tagToRemove)
     }));
+  };
+
+  const handleSearchSubmit = (keyword) => {
+    const nextKeyword = keyword.trim();
+
+    if (!nextKeyword) {
+      navigate('/knowledge');
+      return;
+    }
+
+    navigate(`/knowledge?search=${encodeURIComponent(nextKeyword)}`);
   };
 
   return (
