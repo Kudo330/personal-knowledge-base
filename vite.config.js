@@ -10,12 +10,12 @@ import {
 import react from '@vitejs/plugin-react';
 
 const CHAT_VARIABLE = process.env.CHAT_VARIABLE || '';
-const PUBLIC_PATH = process.env.PUBLIC_PATH || '';
+const GITHUB_PAGES_BASE = '/personal-knowledge-base/';
 
 const isProdEnv = process.env.NODE_ENV === 'production';
-const publicPath = (isProdEnv && CHAT_VARIABLE)
-  ? PUBLIC_PATH + '/' + CHAT_VARIABLE
-  : PUBLIC_PATH + '/';
+const publicPath = isProdEnv
+  ? GITHUB_PAGES_BASE
+  : '/';
 const outDir = (isProdEnv && CHAT_VARIABLE) ? 'build/' + CHAT_VARIABLE : 'build';
 
 async function loadPlugins() {
