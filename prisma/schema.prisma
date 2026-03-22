@@ -1,0 +1,87 @@
+// Prisma + SQLite 数据模型
+// 适合MVP版本的个人知识库应用
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// 知识条目主表
+model Knowledge {
+  id              String   @id @default(uuid())
+  title           String   @db.VarChar(200)
+  content         String   @db.Text
+  summary         String?  @db.VarChar(500)
+  category        String?
+  tags            String[] // SQLite不支持数组，实际存储为JSON字符串
+  source          String?
+  sourceUrl       String?
+  isFavorite      Boolean  @default(false)
+  isArchived      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  reviewAt        DateTime?
+  lastReviewedAt  DateTime?
+  aiSummary       String?
+  aiKeywords      String[] // SQLite不支持数组，实际存储为JSON字符串
+  contentType     String   @default("text")
+  priority        Int      @default(0)
+  
+  // 索引优化
+  @@index([category])
+  @@index([isFavorite])
+  @@index([isArchived])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([reviewAt])
+}
+
+// 分类表（为后续扩展准备）
+model Category {
+  id          String @id @default(uuid())
+  name        String @unique @db.VarChar(50)
+  color       String @db.VarChar(7) // HEX颜色值
+  description String?
+  createdAt   DateTime @default(now())
+  
+  knowledges Knowledge[]
+  
+  @@index([name])
+}
+
+// 标签表（为后续扩展准备）
+model Tag {
+  id          String @id @default(uuid())
+  name        String @unique @db.VarChar(50)
+  color       String @db.VarChar(7) // HEX颜色值
+  count       Int    @default(0)
+  createdAt   DateTime @default(now())
+  
+  @@index([name])
+  @@index([count])
+}
+
+// 用户设置表
+model UserSettings {
+  id           String @id @default(uuid())
+  theme        String @default("light")
+  language     String @default("zh-CN")
+  autoBackup   Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// 搜索历史表
+model SearchHistory {
+  id          String @id @default(uuid())
+  query       String @db.VarChar(200)
+  resultCount Int    @default(0)
+  createdAt   DateTime @default(now())
+  
+  @@index([query])
+  @@index([createdAt])
+}
