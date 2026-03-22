@@ -1,11 +1,69 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Archive, ArrowLeft, Calendar, ExternalLink, Star, Tag, Trash2 } from 'lucide-react';
+import {
+  Archive,
+  ArrowLeft,
+  Calendar,
+  Edit3,
+  ExternalLink,
+  Lightbulb,
+  Sparkles,
+  Star,
+  Tag,
+  Trash2
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { deleteKnowledge, getKnowledgeById, saveKnowledge } from '../lib/storage.js';
 import { PRESET_CATEGORIES } from '../lib/schema.js';
+
+const buildFallbackSummary = (knowledge) => {
+  if (knowledge.aiSummary) {
+    return knowledge.aiSummary;
+  }
+
+  if (knowledge.summary) {
+    return knowledge.summary;
+  }
+
+  const sentences = String(knowledge.content || '')
+    .split(/[。！？\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (sentences.length === 0) {
+    return '当前条目还没有 AI 总结。MVP 阶段可在保存后调用大模型自动生成摘要、建议分类和标签。';
+  }
+
+  return `${sentences.slice(0, 2).join('。')}。`;
+};
+
+const buildKeyPoints = (knowledge) => {
+  const points = [];
+
+  if (knowledge.category) {
+    points.push(`分类已归入 ${knowledge.category}`);
+  }
+
+  if (knowledge.tags?.length) {
+    points.push(`包含 ${knowledge.tags.length} 个标签，便于后续检索`);
+  }
+
+  if (knowledge.reviewAt) {
+    points.push(`已设置回顾时间 ${format(new Date(knowledge.reviewAt), 'yyyy年MM月dd日', { locale: zhCN })}`);
+  }
+
+  if (knowledge.source) {
+    points.push(`来源记录为 ${knowledge.source}`);
+  }
+
+  if (points.length === 0) {
+    points.push('建议后续补充来源、标签和回顾时间，增强知识复用效率');
+  }
+
+  return points.slice(0, 4);
+};
 
 const KnowledgeDetail = () => {
   const { id } = useParams();
@@ -14,6 +72,20 @@ const KnowledgeDetail = () => {
 
   const category = useMemo(() => {
     return PRESET_CATEGORIES.find((item) => item.id === knowledge?.category) || null;
+  }, [knowledge]);
+
+  const aiSummary = useMemo(() => {
+    if (!knowledge) {
+      return '';
+    }
+    return buildFallbackSummary(knowledge);
+  }, [knowledge]);
+
+  const keyPoints = useMemo(() => {
+    if (!knowledge) {
+      return [];
+    }
+    return buildKeyPoints(knowledge);
   }, [knowledge]);
 
   if (!knowledge) {
@@ -66,10 +138,16 @@ const KnowledgeDetail = () => {
     navigate('/');
   };
 
+  const handleEditEntry = () => {
+    toast('MVP 版本先保留查看能力，编辑入口可在下一步接成表单页。', {
+      icon: '✎'
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-border/50 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center">
             <Link
               to="/"
@@ -80,7 +158,14 @@ const KnowledgeDetail = () => {
             </Link>
             <h1 className="text-xl font-medium text-foreground">知识详情</h1>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleEditEntry}
+              className="inline-flex items-center rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+            >
+              <Edit3 className="mr-2 h-4 w-4" />
+              编辑入口
+            </button>
             <button
               onClick={handleToggleFavorite}
               className={`rounded-lg p-2 transition-colors ${
@@ -110,80 +195,132 @@ const KnowledgeDetail = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-xl border border-border/50 bg-card shadow-sm">
-          <div className="border-b border-border/50 p-6">
-            <div className="mb-4 flex items-start justify-between">
-              <h1 className="flex-1 text-2xl font-medium text-foreground">{knowledge.title}</h1>
-              <div className="ml-4 flex items-center space-x-2">
-                {knowledge.isFavorite && <Star className="h-5 w-5 fill-current text-yellow-500" />}
-                {knowledge.isArchived && <Archive className="h-5 w-5 text-muted-foreground" />}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center">
-                <Calendar className="mr-1 h-4 w-4" />
-                <span>
-                  创建于 {format(new Date(knowledge.createdAt), 'yyyy年MM月dd日 HH:mm', { locale: zhCN })}
-                </span>
-              </div>
-              <div className="flex items-center">
-                <Calendar className="mr-1 h-4 w-4" />
-                <span>
-                  更新于 {format(new Date(knowledge.updatedAt), 'yyyy年MM月dd日 HH:mm', { locale: zhCN })}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6">
-            <div className="prose mb-6 max-w-none">
-              <div className="whitespace-pre-wrap leading-relaxed text-foreground">
-                {knowledge.content}
-              </div>
-            </div>
-
-            <div className="mb-6 flex flex-wrap items-center gap-3">
-              {category && (
-                <span
-                  className="rounded-full px-3 py-1 text-sm font-medium text-white"
-                  style={{ backgroundColor: category.color }}
-                >
-                  {category.name}
-                </span>
-              )}
-              {knowledge.tags?.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-sm text-secondary-foreground"
-                >
-                  <Tag className="mr-1 h-3 w-3" />
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            {knowledge.source && (
-              <div className="rounded-lg bg-muted p-4">
-                <h3 className="mb-2 text-sm font-medium text-foreground">来源</h3>
-                <div className="flex items-center text-muted-foreground">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  <span>{knowledge.source}</span>
-                  {knowledge.sourceUrl && (
-                    <a
-                      href={knowledge.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-2 text-primary underline transition-colors hover:text-primary/80"
-                    >
-                      查看原文
-                    </a>
-                  )}
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
+          <section className="rounded-[1.8rem] border border-border/60 bg-white/70 shadow-[0_20px_60px_rgba(117,126,145,0.10)] backdrop-blur-md">
+            <div className="border-b border-border/60 p-7">
+              <div className="mb-5 flex items-start justify-between gap-6">
+                <div>
+                  <p className="kb-eyebrow mb-2">Knowledge entry</p>
+                  <h1 className="kb-cn-display-lg mb-0 text-[2.4rem] text-slate-950">
+                    {knowledge.title}
+                  </h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  {knowledge.isFavorite && <Star className="h-5 w-5 fill-current text-yellow-500" />}
+                  {knowledge.isArchived && <Archive className="h-5 w-5 text-slate-400" />}
                 </div>
               </div>
-            )}
-          </div>
+
+              <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                <div className="inline-flex items-center gap-2 rounded-full bg-slate-900/5 px-3 py-1.5">
+                  <Calendar className="h-4 w-4" />
+                  <span>创建于 {format(new Date(knowledge.createdAt), 'yyyy年MM月dd日 HH:mm', { locale: zhCN })}</span>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-slate-900/5 px-3 py-1.5">
+                  <Calendar className="h-4 w-4" />
+                  <span>更新于 {format(new Date(knowledge.updatedAt), 'yyyy年MM月dd日 HH:mm', { locale: zhCN })}</span>
+                </div>
+                {knowledge.reviewAt && (
+                  <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-primary">
+                    <Sparkles className="h-4 w-4" />
+                    <span>回顾时间 {format(new Date(knowledge.reviewAt), 'yyyy年MM月dd日', { locale: zhCN })}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-8 p-7">
+              <div>
+                <h2 className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-slate-400">正文</h2>
+                <div className="kb-cn-body whitespace-pre-wrap text-[1rem] leading-8 text-slate-700">
+                  {knowledge.content}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="mb-0 text-sm font-medium uppercase tracking-[0.2em] text-slate-400">元信息</h2>
+                <div className="flex flex-wrap gap-3">
+                  {category && (
+                    <span
+                      className="rounded-full px-4 py-2 text-sm font-medium text-white"
+                      style={{ backgroundColor: category.color }}
+                    >
+                      {category.name}
+                    </span>
+                  )}
+                  {knowledge.tags?.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600"
+                    >
+                      <Tag className="mr-2 h-3.5 w-3.5" />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {knowledge.source && (
+                <div className="rounded-2xl bg-slate-900/[0.035] p-5">
+                  <h2 className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-slate-400">来源</h2>
+                  <div className="flex flex-wrap items-center gap-2 text-slate-600">
+                    <ExternalLink className="h-4 w-4" />
+                    <span>{knowledge.source}</span>
+                    {knowledge.sourceUrl && (
+                      <a
+                        href={knowledge.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 text-primary underline transition-colors hover:text-primary/80"
+                      >
+                        查看原文
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <aside className="space-y-6">
+            <section className="rounded-[1.8rem] border border-border/60 bg-[#4f6bad]/95 p-6 text-white shadow-[0_25px_70px_rgba(53,81,136,0.25)]">
+              <div className="mb-4 flex items-center gap-2 text-white/75">
+                <Sparkles className="h-4 w-4" />
+                <p className="kb-eyebrow text-white/75">AI summary</p>
+              </div>
+              <h2 className="kb-cn-display-lg mb-4 text-[1.9rem] text-white">AI 总结区</h2>
+              <p className="kb-cn-body text-[0.96rem] leading-7 text-white/84">{aiSummary}</p>
+            </section>
+
+            <section className="rounded-[1.8rem] border border-border/60 bg-white/70 p-6 shadow-[0_20px_60px_rgba(117,126,145,0.10)] backdrop-blur-md">
+              <div className="mb-4 flex items-center gap-2 text-slate-500">
+                <Lightbulb className="h-4 w-4" />
+                <p className="kb-eyebrow mb-0">Key points</p>
+              </div>
+              <h2 className="kb-cn-display-lg mb-4 text-[1.8rem] text-slate-950">关键信息</h2>
+              <ul className="space-y-3">
+                {keyPoints.map((point) => (
+                  <li
+                    key={point}
+                    className="kb-cn-body rounded-2xl bg-slate-900/[0.035] px-4 py-3 text-[0.94rem] leading-7 text-slate-600"
+                  >
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="rounded-[1.8rem] border border-dashed border-primary/25 bg-primary/[0.04] p-6">
+              <p className="kb-eyebrow mb-3 text-primary/70">MVP scope</p>
+              <h2 className="kb-cn-display-lg mb-3 text-[1.65rem] text-slate-950">当前功能范围</h2>
+              <div className="space-y-2 text-sm leading-7 text-slate-600">
+                <p>已支持查看完整正文、来源、分类、标签、创建时间、收藏、归档和删除。</p>
+                <p>编辑入口已预留，下一步可接入表单页或侧边抽屉。</p>
+                <p>AI 总结区已就位，适合后续接入自动摘要、自动标签和回顾问题生成。</p>
+              </div>
+            </section>
+          </aside>
         </div>
       </main>
     </div>

@@ -1,8 +1,9 @@
-import { HomeIcon, BookOpenIcon, PlusIcon } from 'lucide-react';
+import { BookOpenIcon, CalendarClockIcon, HomeIcon, PlusIcon } from 'lucide-react';
 import Index from './pages/Index.jsx';
 import KnowledgeList from './components/KnowledgeList.jsx';
 import AddKnowledge from './components/AddKnowledge.jsx';
 import KnowledgeDetail from './components/KnowledgeDetail.jsx';
+import Review from './pages/Review.jsx';
 
 export const navItems = [
   {
@@ -22,6 +23,12 @@ export const navItems = [
     to: '/add',
     icon: <PlusIcon className="h-4 w-4" />,
     page: <AddKnowledge />
+  },
+  {
+    title: '今日回顾',
+    to: '/review',
+    icon: <CalendarClockIcon className="h-4 w-4" />,
+    page: <Review />
   }
 ];
 
@@ -29,5 +36,6 @@ export const routes = [
   { path: '/', element: <Index /> },
   { path: '/knowledge', element: <KnowledgeList /> },
   { path: '/knowledge/:id', element: <KnowledgeDetail /> },
-  { path: '/add', element: <AddKnowledge /> }
+  { path: '/add', element: <AddKnowledge /> },
+  { path: '/review', element: <Review /> }
 ];
