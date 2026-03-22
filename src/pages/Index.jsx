@@ -27,7 +27,11 @@ const initialQuickAddData = {
   tags: []
 };
 
-const navigationItems = ['Archive', 'Atlas', 'Compose'];
+const navigationItems = [
+  { label: 'Knowledge', to: '/knowledge' },
+  { label: 'Review', to: '/review' },
+  { label: 'Add', to: '/add' },
+];
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -130,7 +134,7 @@ const Index = () => {
               <BookOpen className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <p className="kb-eyebrow mb-1">Personal archive / curated notes</p>
+              <p className="kb-eyebrow mb-1">Personal archive</p>
               <h1 className="kb-cn-display-lg mb-0 text-[1.65rem] text-slate-950 sm:text-[1.95rem]">
                 个人知识库
               </h1>
@@ -139,9 +143,9 @@ const Index = () => {
 
           <div className="hidden items-center gap-8 lg:flex">
             {navigationItems.map((item) => (
-              <span key={item} className="kb-toplink">
-                {item}
-              </span>
+              <Link key={item.to} to={item.to} className="kb-toplink">
+                {item.label}
+              </Link>
             ))}
             <Link to="/knowledge" className="kb-toplink">
               Enter
